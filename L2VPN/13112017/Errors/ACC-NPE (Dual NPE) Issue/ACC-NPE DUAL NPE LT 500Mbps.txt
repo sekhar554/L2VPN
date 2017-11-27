@@ -1,0 +1,36 @@
+TEST CASE: Add an ACC-NPE intra-CEN, Dual NPE, <500Mbps L2vpn Link
+
+ckt-id CISC-ANG001
+customer-name INFINITY
+Order dop 141117
+Order ra 21468
+bandwidth 5000
+mtu 1700
+primary-pwid 12
+backup-pwid 13
+service - business - test
+
+src - access 
+- device - CHN_CASR903_SRC_ACC_0
+- intf-id - GigabitEthernet0/0/2/1
+- media-type - auto-select
+- evc - l2protocol - all
+
+destn - choice-destn-choice - lastmile
+- type - lm-mpls
+
+- device - CHN_CASR9K_SRK_AGGR_0
+- intf-id - GigabitEthernet0/0/2/2
+- subintf-id - 10
+
+- device - CHN_CASR9K_SRK_AGGR_1
+- intf-id - GigabitEthernet0/0/2/3
+- subintf-id - 33
+
+
+Dry-Run Error:-
+/ml2:mpls-l2vpn{CISC-ANG001}/destn/access/interface/intf-id is not configured.
+
+
+
+

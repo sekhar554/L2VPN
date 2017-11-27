@@ -1,0 +1,44 @@
+mpls-l2vpn TEST-ANG0001 {
+    customer-name AIRTEL;
+    order {
+        date-of-provisioning 101117;
+        ra 12354;
+    }
+    bandwidth 510000;
+    mtu {
+        mtu 1800;
+    }
+    primary-pwid 1;
+    backup-pwid 2;
+    src {
+        access {
+            device CHN_CASR903_SRC_ACC_0;
+            interface {
+                intf-id GigabitEthernet0/0/9/1;
+                media-type auto-select;
+                link-log;
+                keepalive;
+                load-interval;
+                arp-inspect;
+            }
+            evc {
+                l2protocol {
+                    all;
+                }
+            }
+        }
+        lagg {
+            devices CHN_CASR9K_SRK_AGGR_0;
+            devices CHN_CASR9K_SRK_AGGR_1;
+        }
+    }
+    destn {
+        npe {
+            type lm-mpls;
+            devices CHN_CASR9K_SRK_AGGR_0 {
+                intf-id GigabitEthernet0/0/10/1;
+                subintf-id 10;
+            }
+        }
+    }
+}

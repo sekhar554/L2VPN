@@ -1,0 +1,55 @@
+24-November-2017
+----------------
+Pre-requisites
+•  NSO version 4.4.2
+•  NSO L2VPN & L3VPN SM DROP 4.3
+•  Browser Chrome
+•  JDK 1.8
+•  Tomcat 8.5 or above
+•  MySQL 5.6 or above
+
+List of Features of L2VPN :
+
+1. Device deletion should invoke a confirmation pop up window - Done
+2. Device dropdown in every container should show only relevant set of devices according to the role - Done
+3. Search option should be available for device dropdown - Done
+4. Accepting vlan-id 1 under evc  - Done
+5. Selected protocols in l2protocol container shown as checked - Done
+6. Service options should be a dropdown - Done
+
+
+Known Facts : 
+
+• SM is accepting NULL values for "Customer Name"  
+
+• Service Type - We can't delete the service choice directly because NSO doesn't provide set case method, beacuase it have only get case method. If we get the set case method from NSO, we would be able to adopt to it accordingly in GUI.
+We need to clear the service type textbox(blank) before deleting the services, if you want to delete the service. (Mantis-1076)
+
+• If any mandatory filed is already set with a value & we are trying to set the null. Then it will show an error at the bottom of   that field. Also will not show any    error in dry run, as it will take previous value which was set in that field. It will show an error at the first time while creating the link, as we have to set a    value in mandatory field. This will be the same functionality of NSO as well & is same for all mandatory field. (Manstis Issue - 1089, 1090)
+
+----------------------------------------------------------------
+
+16-November-2017
+----------------
+
+Pre-requisites
+•  NSO version 4.4.2
+•  NSO L2VPN SM DROP 4.3
+•  Browser Chrome
+•  JDK 1.8
+•  Tomcat 8.5 or above
+•  MySQL 5.6 or above
+
+List of Features of L2VPN
+
+• Able to create or provisioning of an L2VPNservice in the CEN network with appropriate BandWidth and redundancy constraints.
+• Deletion of a created L2VPN service.
+• Modify a provisioned L2VPN service when any of the service parameters are changed.
+ 
+
+Known Facts : 
+
+• SM is accepting NULL values for "Customer Name"  
+• Session Timeout even when session is active - it is currently hardcoded to ten minutes -- 
+	o It’s managed as per NSO behavior and set to 10 minutes.
+	o We are expecting to have JSON RPC interface session timeout value from NSO.

@@ -1,0 +1,109 @@
+mpls-l2vpn AIRT-ANG001 {
+    customer-name NOIDA;
+    order {
+        date-of-provisioning 131117;
+        ra 21345;
+    }
+    bandwidth 4000;
+    mtu {
+    }
+    primary-pwid 12;
+    backup-pwid 76;
+    src {
+        access {
+            device BGL_CASR920_DST_ACC_0;
+            interface {
+                intf-id GigabitEthernet0/0/7/1;
+                media-type auto-select;
+                link-log;
+                no-autoneg {
+                    speed 10000;
+                    full-duplex;
+                }
+                keepalive;
+                load-interval;
+                arp-inspect;
+            }
+            evc {
+                l2protocol {
+                    protocols [ cdp ];
+                }
+            }
+            overrides {
+                evc {
+                    id 10;
+                    qos-name srcqos;
+                    description srcdesc;
+                }
+                interface {
+                    description srcint;
+                }
+                primary-pwid 15;
+                backup-pwid 12;
+            }
+        }
+        lagg {
+            devices CHN_CASR9K_SRK_AGGR_0;
+            devices CHN_CASR9K_SRK_AGGR_1;
+            overrides {
+                bridge_vfi {
+                    bridge-domain-name fg;
+                    vfi-name gf;
+                }
+                bridge-grp-name aq;
+                pwclass-name wqw;
+                primary-pwid 56;
+                backup-pwid 34;
+            }
+        }
+    }
+    destn {
+        access {
+            type e2ecen-inter;
+            device BGL_CASR920_DST_ACC_1;
+            interface {
+                intf-id GigabitEthernet0/0/7/2;
+                media-type rj45;
+                link-log;
+                no-autoneg {
+                    speed 1000;
+                    full-duplex;
+                }
+                keepalive;
+                load-interval;
+                arp-inspect;
+            }
+            evc {
+                l2protocol {
+                    protocols [ lacp ];
+                }
+            }
+            overrides {
+                evc {
+                    id 11;
+                    qos-name destnqos;
+                    description destndesc;
+                }
+                interface {
+                    description destnintdesc;
+                }
+                primary-pwid 16;
+                backup-pwid 17;
+            }
+        }
+        lagg {
+            devices CHN_CASR9K_SRK_AGGR_0;
+            devices CHN_CASR9K_SRK_AGGR_1;
+            overrides {
+                bridge_vfi_xconnect {
+                    bridge-domain-name ty;
+                    vfi-name ui;
+                    xconnect-name od;
+                    p2p-name gd;
+                }
+                bridge-grp-name a;
+                pwclass-name b;
+            }
+        }
+    }
+}

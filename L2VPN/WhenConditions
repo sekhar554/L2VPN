@@ -1,0 +1,34 @@
+When Conditions:-
+
+1. leaf backup-pwid {
+      description "Backup PW-ID. Default value derived from RA";
+      when "((count(../src/lagg/devices/device)=2" +
+        "or count(../destn/lagg/devices/device)=2 or count(../destn/npe/devices/device)=2))";
+      type uint32;
+      mandatory true;
+    }
+2. uses override-access;
+          leaf primary-pwid {
+        	
+        	when "../../overrides";
+            description "Primary PW-ID for Local Aggregator Stitching. Default value derived from RA";
+            tailf:info "Primary PW-ID for Local Aggregator Stitching. Default value derived from RA";
+            type uint32;
+            mandatory true;
+          }
+3. leaf backup-pwid {
+            description "Backup PW-ID for Local Aggregator Stitching. Default value derived from RA";
+            tailf:info "Backup PW-ID for Local Aggregator Stitching. Default value derived from RA";
+            when "((count(../../../lagg/devices/device)=2" +
+            		        "or count(../../../../destn/lagg/devices/device)=2" +
+                            "or count(../../../../destn/npe/devices/device)=2))"+
+            		        "and (../../overrides)";
+            type uint32;
+            mandatory true;
+          }
+4. container lagg {
+        description "The Source Local Aggregator devices
+                     Only If BW greater than 500Mbps OR InterCEN";
+        tailf:info "The Source Local Aggregator devices
+            Only If BW greater than 500Mbps OR InterCEN";
+        when "../../destn/access/type='e2ecen-inter' or ../../bandwidth>=500000";

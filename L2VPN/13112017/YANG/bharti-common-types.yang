@@ -1,0 +1,45 @@
+module bharti-common-types {
+  namespace "http://l2mpls.com/common";
+  prefix l2mpls;
+
+  identity l3vpn-topology;
+  identity l2vpn-service-type;
+
+  typedef vpn-id {
+    type string;
+  }
+  typedef site-id {
+    type string {
+      pattern "[A-Z/-]*";
+    }
+  }
+
+  typedef vlan-id {
+    type uint16 {
+      range "1..4096";
+    }
+  }
+  
+  identity full-mesh {
+    base l3vpn-topology;
+  }
+  identity hub-and-spoke {
+    base l3vpn-topology;
+  }
+  identity isp {
+    base l3vpn-topology;
+  }
+
+  identity l2vpn-e2ecen-intra {
+    base l2vpn-service-type;
+  }
+  identity l2vpn-e2ecen-inter {
+    base l2vpn-service-type;
+  }
+  identity l2vpn-lm-other {
+    base l2vpn-service-type;
+  }
+  identity l2vpn-lm-mpls {
+    base l2vpn-service-type;
+  }
+}

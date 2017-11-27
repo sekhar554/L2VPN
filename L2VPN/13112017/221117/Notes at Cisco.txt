@@ -1,0 +1,7 @@
+@@@@@@@@@22.11.2017@@@@@@@
+
+1. Vlan-id has default value 1. When we are trying to modify some value to 1 it is not accepting saying no changes in VPN.
+
+2. Whenever removing mandatory fields also, Error shows at bottom of the field. When dry it messages, There is no change in VPN. 
+
+3. 

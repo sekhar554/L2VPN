@@ -1,0 +1,591 @@
+module mpls-l2vpn {
+  namespace "http://com.cisco/bharti/mpls-l2vpn";
+  prefix ml2;
+
+  import bharti-common-types {
+    prefix l2mpls;
+  }
+  import ietf-inet-types {
+    prefix inet;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+  import tailf-common {
+    prefix tailf;
+  }
+
+  description "L2VPN Base Yang Model for CEN Networks";
+
+  reference "[1] Airtel Standard Procedure for MPLS Provisioning MPLS L3/L2 Services, 1-May-2016
+  [2] CRD - Rev 1.1";
+
+  revision "2017-10-10" {
+    description "reconstructed the l2protocol section to give choice between all protocols or
+    select multiple protocols using leaf-list";
+  }
+
+  revision "2017-10-06" {
+    description "Moved reconcile-access grouping knobs to access grouping
+    added evc and interface containers in acces grouping and moved intf-id and vlan-id under containers";
+  }
+
+  revision "2017-08-28" {
+    description "Amended access and lagg grouping
+    changed src/destn access and lagg containers alongwith when conditions
+    removed isp identity and consolidated it in other identity
+    added pattern contraints and error-messages in leafs
+    removed unwanted comments
+    removed reconciliation boolean conditions";
+  }
+
+  revision "2017-08-27" {
+    description "Added new identity for e2ecen intra and inter
+    updated lagg and access container when condition based on new identities";
+  }
+
+  revision "2017-08-24" {
+    description "Changes in access grouping
+    Changes in lagg grouping";
+  }
+
+  revision "2017-08-09" {
+    description "First draft.";
+  }
+
+  grouping access {
+    description "Access Device Group";
+    leaf device {
+      description "Access Device";
+      mandatory true;
+      type leafref {
+        path "/ncs:devices/ncs:device/ncs:name";
+      }
+      must "contains(current(),'CASR903') or contains(current(),'CASR920')" {
+        tailf:dependency ".";
+        error-message "Only ASR903/ASR920 Devices can be selected";
+      }
+    }
+    container interface {
+      leaf intf-id {
+        description "Access device interface id";
+        tailf:info "Access device interface id";
+        mandatory true;
+        type string {
+          pattern "GigabitEthernet[0-9]+(/[0-9]+)*" +
+            "|TenGigabitEthernet[0-9]+(/[0-9]+)*" +
+            "|Port-channel[0-9]+" {
+            error-message "Please insert the right interface id";
+          }
+        }
+      }
+
+      leaf media-type {
+        description "Interface media type";
+        tailf:info "Interface media type";
+        type enumeration {
+          enum auto-select;
+          enum rj45;
+          enum sfp;
+        }
+      }
+
+      leaf link-log {
+        description "Logging event link status toggle";
+        tailf:info "Logging event link status toggle";
+        type empty;
+      }
+      leaf no-autoneg {
+        description "Disable interface auto negotiation";
+        tailf:info "Disable interface auto negotiation";
+        type empty;
+        }
+   
+      leaf keepalive {
+    	tailf:info "Interface keep-alive toggle";
+        type empty;
+      }
+
+      leaf load-interval {
+        description "30 sec interface load interval toggle";
+        tailf:info "30 sec interface load interval toggle";
+        type empty;
+      }
+
+      leaf arp-inspect {
+        description "ARP inspection toggle";
+        tailf:info "ARP inspection toggle";
+        type empty;
+      }
+    }
+
+    container evc {
+      leaf vlan-id {
+        description "Access device interface vlan-id";
+        tailf:info "Access device interface vlan-id";
+        type l2mpls:vlan-id;
+        default 1;
+      }
+
+      container l2protocol {
+        choice protocol {
+          default all;
+          case all {
+            leaf all {
+              type empty;
+            }
+          }
+          case protocols {
+            leaf-list protocols {
+              min-elements 1;
+              max-elements 7;
+              type enumeration {
+                enum cdp;
+                enum lacp;
+                enum lldp;
+                enum pagp;
+                enum stp;
+                enum udld;
+                enum vtp;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  grouping lagg {
+    description "Aggregator Device Group";
+    list devices {
+      description "Aggregator Device List";
+      tailf:info "Aggregator Device List";
+      key "device";
+      min-elements 1;
+      max-elements 2;
+
+      leaf device {
+        description "The Local Aggregator devices for the access device";
+        tailf:info "The Local Aggregator devices for the access device";
+        mandatory true;
+        type leafref {
+          path "/ncs:devices/ncs:device/ncs:name";
+        }
+        must "contains(current(),'CASR9K')" {
+          tailf:dependency ".";
+          error-message "Only ASR9K Devices can be selected";
+        }
+      }
+    }
+  }
+
+  grouping override-access {
+    description "Override group for Access devices";
+
+    container evc {
+      leaf id {
+    	tailf:info "Source access interface EVC ID";
+        description "Source access interface EVC ID";
+        type uint32;
+      }
+
+      leaf qos-name {
+    	tailf:info "QoS Policy Name";
+        description "QoS Policy Name";
+        type string;
+      }
+
+      leaf description {
+    	tailf:info "Source access evc description";
+        description "Source access evc description";
+        type string;
+      }
+    }
+
+    container interface {
+      leaf description {
+    	tailf:info "Source access interface description";
+        description "Source access interface description";
+        type string;
+      }
+    }
+  }
+
+  grouping override-lagg {
+    description "Override group for Access devices";
+    grouping vfi {
+      leaf bridge-domain-name {
+    	tailf:info "Bridge domain name";
+        description "Bridge domain name";        
+        type string {
+        pattern "[a-zA-Z][a-zA-Z0-9]{0,31}"{
+		error-message "Maximum length for bridge domain name is 32 , please provide < 32 characters";
+		}
+           }
+      }
+
+      leaf vfi-name {
+    	tailf:info "VFI name";
+        description "VFI name";
+        type string{
+        pattern "[a-zA-Z][a-zA-Z0-9]{0,31}"{
+		error-message "Maximum length for vfi-name is 32 , please provide < 32 characters";
+		}
+            }
+        }
+    }
+    grouping xconnect {
+      leaf xconnect-name {
+    	tailf:info "Xconnect name";
+        description "Xconnect name";
+        type string{
+        pattern "[a-zA-Z][a-zA-Z0-9]{0,31}"{
+		error-message "Maximum length for xconnect name is 32 , please provide < 32 characters";
+		}
+           }
+      }
+
+      leaf p2p-name {
+    	tailf:info "Xconnect P2P name";
+        description "Xconnect P2P name";
+        type string{
+        pattern "[a-zA-Z][a-zA-Z0-9]{0,31}"{
+		error-message "Maximum length for p2p-name is 32 , please provide < 32 characters";
+		}
+            }
+        }
+    }
+    choice stitching-type {
+      container bridge_vfi {
+        presence "If Bridge VFI";
+        tailf:info "If Bridge VFI";
+        uses vfi;
+      }
+      container xconnect {
+        presence "If XConnect";
+        tailf:info "If XConnect";
+        uses xconnect;
+      }
+      container bridge_vfi_xconnect {
+        presence "If VFI XConnect";
+        tailf:info "If VFI XConnect";
+        uses vfi;
+        uses xconnect;
+      }
+    }
+    leaf bridge-grp-name {
+      description "Bridge group name";
+      type string;
+    }
+
+    leaf pwclass-name {
+      description "PW-Class name";
+      tailf:info "PW-Class name";
+      type string;
+    }
+  }
+
+  list mpls-l2vpn {
+    key ckt-id;
+
+    unique "order/ra";
+    ncs:servicepoint mpls-l2vpn-servicepoint;
+    uses ncs:service-data;
+
+    leaf ckt-id {
+      reference "IHDL-ANG00001";
+      description "The circuit ID of the L2VPN Link";
+      tailf:info "The circuit ID of the L2VPN Link";
+      type string {
+        pattern "[A-Za-z]{4}-(ANG|ang)[0-9]{1,15}" {
+          error-message "Invalid format for ckt-id";
+        }
+      }
+    }
+    leaf reconcile{
+      tailf:info "Default reconcile is false , when its true NSO will proceed with reconcilation ";
+      type boolean;
+      default false;
+    }
+    leaf customer-name {
+      description  "The customer long name. ";
+      tailf:info "The customer long name. ";
+      mandatory true;
+      type string;
+    }
+
+    container order {
+    	leaf date-of-provisioning {
+    	  reference "DDMMYY";
+    	  mandatory true;
+    	  type string {
+    	    pattern "(0[1-9]|1[0-9]|2[0-9]|3[01])(0[1-9]|1[012])([0-9][0-9])" {
+    	      error-message "Insert date in DDMMYY format";
+    	    }
+    	   }
+    	}
+
+      leaf ra {
+        reference "The id of the last provisioning work order (RA)
+        This is always set if this is a provisioning order.";
+        mandatory true;
+        type uint32;
+      }
+    }
+
+
+    leaf bandwidth {
+      description "The bandwidth of the circuit";
+      tailf:info "The bandwidth of the circuit";
+      type uint32;
+      mandatory true;
+      units Kbps;
+    }
+
+    container mtu{
+      presence " when mtu enable";
+      leaf mtu {
+        description "The mtu of the circuit";
+        tailf:info "The mtu of the circuit";
+        type uint16 {
+          range "1500..9216" {
+            error-message "MTU value is out of range.";
+          }
+        }
+        default 9202;
+      }
+    }
+
+    leaf primary-pwid {
+      description "Primary PW-ID. Default value derived from RA";
+      tailf:info "Primary PW-ID. Default value derived from RA";
+      type uint32;
+      mandatory true;
+    }
+
+    leaf backup-pwid {
+      description "Backup PW-ID. Default value derived from RA";
+      when "((count(../src/lagg/devices/device)=2" +
+        "or count(../destn/lagg/devices/device)=2 or count(../destn/npe/devices/device)=2))";
+      type uint32;
+      mandatory true;
+    }
+    container service {
+        choice name {
+          container business {
+            leaf type {
+              type union {
+                type enumeration {
+                  enum isp;
+                  enum ilp;
+                  enum mpls;
+                  enum e2ecen;
+                  enum backhaul;
+                  enum ang;
+                  enum tng;
+                  enum expressway;
+                }
+                type string {
+                 pattern "[a-zA-Z][a-zA-Z0-9]{2,20}"{
+					error-message "Invalid name";
+					}
+                }
+              }
+            }
+          }
+          container mobility {
+            leaf type {
+              type string {
+                pattern "[a-zA-Z][a-zA-Z0-9]{2,20}"{
+                  error-message "Invalid name";
+                }
+              }
+            }
+          }
+          container dslam {
+            leaf type {
+              type union {
+                type enumeration {
+                  enum main_port;
+                  enum mgmt;
+                  enum wifi;
+                  enum static;
+                  enum dynamic;
+                  enum media;
+                  enum signalling;
+                  enum ims;
+                }
+                type string {
+                  pattern "[a-zA-Z][a-zA-Z0-9]{2,20}"{
+                    error-message "Invalid name";
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    container src {
+      container access {
+        description "The source access device";
+        tailf:info "The source access device";
+        presence "Source Access Device";
+        uses access;
+        container overrides {
+          presence " If source access override present ";
+          uses override-access;
+          leaf primary-pwid {
+        	
+        	when "../../overrides";
+            description "Primary PW-ID for Local Aggregator Stitching. Default value derived from RA";
+            tailf:info "Primary PW-ID for Local Aggregator Stitching. Default value derived from RA";
+            type uint32;
+            mandatory true;
+          }
+
+          leaf backup-pwid {
+            description "Backup PW-ID for Local Aggregator Stitching. Default value derived from RA";
+            tailf:info "Backup PW-ID for Local Aggregator Stitching. Default value derived from RA";
+            when "((count(../../../lagg/devices/device)=2" +
+            		        "or count(../../../../destn/lagg/devices/device)=2" +
+                            "or count(../../../../destn/npe/devices/device)=2))"+
+            		        "and (../../overrides)";
+            type uint32;
+            mandatory true;
+          }
+          
+         
+        }
+      }
+
+      container lagg {
+        description "The Source Local Aggregator devices
+                     Only If BW greater than 500Mbps OR InterCEN";
+        tailf:info "The Source Local Aggregator devices
+            Only If BW greater than 500Mbps OR InterCEN";
+        when "../../destn/access/type='e2ecen-inter' or ../../bandwidth>=500000";
+        uses lagg;
+        container overrides {
+          presence " If source lagg override present ";
+          uses override-lagg;
+          leaf primary-pwid {
+        	when "(../../overrides)";
+            description "Primary PW-ID for Remote Aggregator/NPE Stitching. Default value derived from RA";
+            tailf:info "Primary PW-ID for Remote Aggregator/NPE Stitching. Default value derived from RA";
+            type uint32;
+            mandatory true;
+          }
+
+          leaf backup-pwid {
+              description "Backup PW-ID for Remote Aggregator/NPE Stitching. Default value derived from RA";
+              tailf:info "Backup PW-ID for Remote Aggregator/NPE Stitching. Default value derived from RA";
+              when "((count(../../../../destn/lagg/devices/device)=2"+
+              "or count(../../../../destn/npe/devices/device)=2" +
+              "or count(../../devices/device)=2)"+
+              "and (../../overrides))";
+              type uint32;
+              mandatory true;
+            }
+        }
+      }
+    }
+
+    container destn {
+      choice dest-choice {
+        mandatory true;
+        case l2vpn-destn {
+          container access {
+            leaf type {
+              mandatory true;
+              type enumeration  {
+                enum e2ecen-intra;
+                enum e2ecen-inter;
+              }
+            }
+            description "The destination access device";
+            tailf:info "The destination access device";
+            uses access;
+            container overrides {
+              presence " If destination access override present ";
+              uses override-access;
+              leaf primary-pwid {
+                description "Primary PW-ID for Local Aggregator Stitching. Default value derived from RA";
+                tailf:info "Primary PW-ID for Local Aggregator Stitching. Default value derived from RA";
+                when "../../../../destn/lagg and ../../overrides";
+                type uint32;
+                mandatory true;
+              }
+
+              leaf backup-pwid {
+                description "Backup PW-ID for Local Aggregator Stitching. Default value derived from RA";
+                tailf:info "Backup PW-ID for Local Aggregator Stitching. Default value derived from RA";
+                when "count(../../../lagg/devices/device)=2 and ../../overrides";
+                type uint32;
+                mandatory true;
+              }
+            }
+          }
+
+          container lagg {
+                  	
+            description "The Destination Local Aggregator devices";
+            tailf:info "The Destination Local Aggregator devices";
+            when "../../bandwidth>=500000 or ../../destn/access/type='e2ecen-inter'";
+            uses lagg;
+            container overrides {
+              presence " If destination lagg override present ";
+              uses override-lagg;
+            }
+          }
+        }
+        case last-mile {
+          // container for NPE device used in MPLS/Other handover with CEN as Endmile
+          container npe {
+            leaf type {
+              mandatory true;
+              type enumeration {
+                enum lm-mpls;
+                enum lm-other {
+                  description "includes ISP/SDN/BRAS etc.";
+                  tailf:info "includes ISP/SDN/BRAS etc.";
+                }
+              }
+            }
+            description "NPE devices for CEN Endmile L2VPN termination";
+            tailf:info "NPE devices for CEN Endmile L2VPN termination";
+            list devices {
+              key "device";
+              min-elements 1;
+              max-elements 2;
+
+              leaf device {
+                mandatory true;
+                type leafref {
+                  path "/ncs:devices/ncs:device/ncs:name";
+                }
+                must "contains(current(),'CASR9K')" {
+                  tailf:dependency ".";
+                  error-message "Only ASR9K Devices can be selected";
+                }
+              }
+
+              leaf intf-id {
+                mandatory true;
+                type string {
+                  pattern "GigabitEthernet[0-9]+(/[0-9]+)*" +
+                    "|TenGigE[0-9]+(/[0-9]+)*" +
+                    "|Bundle-Ether[0-9]+";
+                }
+              }
+
+              leaf subintf-id {
+                mandatory true;
+                type l2mpls:vlan-id;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

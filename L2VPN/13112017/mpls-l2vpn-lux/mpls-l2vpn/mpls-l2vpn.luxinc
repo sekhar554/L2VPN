@@ -1,0 +1,4244 @@
+[global src_access_device=CHN_CASR903_SRC_ACC_0]
+[global destn_access_device=BGL_CASR920_DST_ACC_0]
+[global src_Aggre_device=CHN_CASR9K_SRC_AGGR_0]
+[global destn_Aggre_device=BGL_CASR9K_DST_AGGR_0]
+[global src_Aggre_device_1=CHN_CASR9K_SRC_AGGR_1]
+[global destn_Aggre_device_1=BGL_CASR9K_DST_AGGR_1]
+[global dest_npe_device_1=CHN_CASR9K_DST_NPA_0]
+[global dest_npe_device_2=CHN_CASR9K_DST_NPA_1]
+[global cust_name=cisco]
+[global date_of_provisioning=090717]
+[global bandwidth=5000000]
+[global service_type=e2ecen-intra]
+[global primary_pwid=111]
+[global backup_pwid=112]
+[global interface_name=GigabitEthernet]
+[global interface_id=0/1]
+[global npe_device1_subinterface=21]
+[global npe_device2_subinterface=31]
+[global npe_interface_name=GigabitEthernet]
+[global npe_interface_id=0/2]
+[global src_evc_id=12]
+[global dest_evc_id=13]
+[global src_media_type=auto-select]
+[global dest_media_type=rj45]
+[global dest_protocol=udld]
+[global dest_protocol=all]
+[global src_intf_description=intdesc]
+[global src_evc_description=testov]
+[global dest_evc_description=service-dst]
+[global dest_intf_description=intdesc-dest]
+[global src_protocol_case=protocols]
+[global dest_protocol_case=protocols]
+[global servicedescriptchocetype=business]
+[global servicedescript_type_val=e2ecen]
+
+[macro create_l2vpn_service]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set customer-name $cust_name
+    !set order date-of-provisioning $date_of_provisioning
+    !set order ra 1234
+    !set bandwidth $bandwidth
+    !set primary-pwid $primary_pwid
+    !set mtu mtu 9216
+    !exit
+[endmacro]
+
+[macro create_l2vpn_service_overrides]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set customer-name $cust_name
+    !set order date-of-provisioning 090717
+    !set order ra 1234
+    !set bandwidth $bandwidth
+    !set primary-pwid $primary_pwid
+    !set mtu mtu 9216
+    !exit
+[endmacro]
+
+[macro set_backup_PWID]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set backup-pwid $backup_pwid
+    !exit
+[endmacro]
+
+[macro src_access_device]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access device $src_access_device interface intf-id $interface_name$interface_id media-type $src_media_type link-log keepalive load-interval arp-inspect
+    !set src access interface no-autoneg
+    !set src access evc l2protocol $src_protocol     
+    !exit
+[endmacro]
+
+[macro dest_access_device]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set destn access type $service_type
+    !set destn access device $destn_access_device interface intf-id $interface_name$interface_id media-type $dest_media_type link-log keepalive load-interval arp-inspect
+    !set destn access interface no-autoneg
+    !set destn access evc l2protocol $dest_protocol_case $dest_protocol
+    !exit
+[endmacro]
+
+[macro serviceinstancedescrip]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set service $servicedescriptchocetype type $servicedescript_type_val
+    !exit
+[endmacro]
+
+[macro src_lagg_device]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src lagg devices $src_Aggre_device
+    !exit
+[endmacro]
+
+[macro dest_lagg_device]
+   !edit mpls-l2vpn AXIS-ANG1111
+   !set destn lagg devices $destn_Aggre_device
+   !exit
+[endmacro]
+
+[macro src_lagg_device_1]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src lagg devices $src_Aggre_device_1
+    !exit
+[endmacro]
+
+[macro dest_lagg_device_1]
+   !edit mpls-l2vpn AXIS-ANG1111
+   !set destn lagg devices $destn_Aggre_device_1
+   !exit
+[endmacro]
+
+[macro npe_device]
+   !edit mpls-l2vpn AXIS-ANG1111
+   !set destn npe type $service_type
+   !set destn npe devices $dest_npe_device_1 intf-id $npe_interface_name$npe_interface_id subintf-id $npe_device1_subinterface
+   !exit
+   !edit mpls-l2vpn AXIS-ANG1111
+   !set destn npe type $service_type
+   !set destn npe devices $dest_npe_device_2 intf-id $npe_interface_name$npe_interface_id subintf-id $npe_device2_subinterface
+   !exit
+[endmacro]
+
+[macro src_vlan_id]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access evc vlan-id 444
+    !exit
+[endmacro]
+
+[macro check_6.2]
+    !show devices device $src_access_device config ios:policy-map 600Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 600000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-intra#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 600Mb;
+                output 600Mb;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          $primary_pwid;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map 600Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 600000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-intra#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input 600Mb;
+                output 600Mb;
+            }
+            xconnect {
+                address       10.230.20.241;
+                vcid          $primary_pwid;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 111;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.241 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.238 pw-id 111;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.239 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro check_6.1]
+    !show devices device $src_access_device config ios:policy-map 400Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   #FTTB#e2ecen-intra#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 400Mb;
+                output 400Mb;
+            }
+            xconnect {
+                address       10.230.20.238;
+                vcid          $primary_pwid;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map 400Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-intra#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input 400Mb;
+                output 400Mb;
+            }
+            xconnect {
+                address       10.230.20.237;
+                vcid          $primary_pwid;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+[endmacro]
+
+[macro check_6.5]
+    !show devices device $src_access_device config ios:policy-map 400Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 400Mb;
+                output 400Mb;
+            }
+            xconnect {
+                address       10.230.20.243;
+                vcid          111;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.244;
+                        vcid                112;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:l2vpn xconnect group $cust_name-111
+    """??
+    p2p $cust_name-111 {
+        interface $npe_interface_name$npe_interface_id.$npe_device1_subinterface;
+        neighbor 10.230.20.237 pw-id 111 {
+            ip-version ipv4;
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device1_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device1_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:l2vpn xconnect group $cust_name-112
+    """??
+    p2p $cust_name-112 {
+        interface $npe_interface_name$npe_interface_id.$npe_device2_subinterface;
+        neighbor 10.230.20.237 pw-id 112 {
+            ip-version ipv4;
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device2_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device2_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro check_6.6]
+    !show devices device $src_access_device config ios:policy-map 400Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 444 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                dot1q {
+                    id [ 444 ];
+                }
+            }
+            rewrite {
+                ingress {
+                    tag {
+                        pop  1;
+                        mode symmetric;
+                    }
+                }
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 400Mb;
+                output 400Mb;
+            }
+            xconnect {
+                address       10.230.20.243;
+                vcid          111;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.244;
+                        vcid                112;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:l2vpn xconnect group $cust_name-111
+    """??
+    p2p $cust_name-111 {
+        interface $npe_interface_name$npe_interface_id.$npe_device1_subinterface;
+        neighbor 10.230.20.237 pw-id 111 {
+            ip-version ipv4;
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device1_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device1_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:l2vpn xconnect group $cust_name-112
+    """??
+    p2p $cust_name-112 {
+        interface $npe_interface_name$npe_interface_id.$npe_device2_subinterface;
+        neighbor 10.230.20.237 pw-id 112 {
+            ip-version ipv4;
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device2_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device2_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro check_6.3]
+    !show devices device $src_access_device config ios:policy-map 600Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 600000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-intra#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    media-type    $src_media_type;
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 600Mb;
+                output 600Mb;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          111;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.240;
+                        vcid                112;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map 600Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 600000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-intra#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    media-type    $dest_media_type;
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input 600Mb;
+                output 600Mb;
+            }
+            xconnect {
+                address       10.230.20.241;
+                vcid          111;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.242;
+                        vcid                112;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 111;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.241 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                    neighbor 10.230.20.242 pw-id 112 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 112;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.241 pw-id 112 {
+                        pw-class $cust_name-111;
+                    }
+                    neighbor 10.230.20.242 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.238 pw-id 111;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.239 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                    neighbor 10.230.20.240 pw-id 112 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.238 pw-id 112;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.239 pw-id 112 {
+                        pw-class $cust_name-111;
+                    }
+                    neighbor 10.230.20.240 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro check_6.4]
+    !show devices device $src_access_device config ios:policy-map 600Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 600000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 600Mb;
+                output 600Mb;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          111;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.240;
+                        vcid                112;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 111;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.243 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                    neighbor 10.230.20.244 pw-id 112 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 112;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.243 pw-id 112 {
+                        pw-class $cust_name-111;
+                    }
+                    neighbor 10.230.20.244 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device1_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device1_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:l2vpn xconnect group $cust_name-111
+    """??
+    p2p $cust_name-111 {
+        interface $npe_interface_name$npe_interface_id.$npe_device1_subinterface;
+        neighbor 10.230.20.239 pw-id 111 {
+            ip-version ipv4;
+            backup {
+                neighbor 10.230.20.240 pw-id 112;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device2_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device2_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:l2vpn xconnect group $cust_name-112
+    """??
+    p2p $cust_name-112 {
+        interface $npe_interface_name$npe_interface_id.$npe_device2_subinterface;
+        neighbor 10.230.20.239 pw-id 112 {
+            ip-version ipv4;
+            backup {
+                neighbor 10.230.20.240 pw-id 111;
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro check_6.7]
+    !show devices device $src_access_device config ios:policy-map 600Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 600000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 600Mb;
+                output 600Mb;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          111;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    shutdown;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 111;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.243 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                    neighbor 10.230.20.244 pw-id 112 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:l2vpn xconnect group $cust_name-111
+    """??
+    p2p $cust_name-111 {
+        interface $npe_interface_name$npe_interface_id.$npe_device1_subinterface;
+        neighbor 10.230.20.239 pw-id 111 {
+            ip-version ipv4;
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device1_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device1_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:l2vpn xconnect group $cust_name-112
+    """??
+    p2p $cust_name-112 {
+        interface $npe_interface_name$npe_interface_id.$npe_device2_subinterface;
+        neighbor 10.230.20.239 pw-id 112 {
+            ip-version ipv4;
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device2_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device2_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro check_6.8]
+    !show devices device $src_access_device config ios:policy-map 400Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-inter#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 400Mb;
+                output 400Mb;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          111;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map 400Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-inter#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input 400Mb;
+                output 400Mb;
+            }
+            xconnect {
+                address       10.60.65.18;
+                vcid          111;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-111 {
+            p2p $cust_name-111 {
+                neighbor 10.230.20.237 pw-id 111 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.18 pw-id 111 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-111 {
+            p2p $cust_name-111 {
+                neighbor 10.230.20.239 pw-id 111 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 111 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro check_6.9_1]
+    !show devices device $src_access_device config ios:policy-map 700Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-inter#$cust_name#AXIS-ANG1111#1234#700#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 700Mb;
+                output 700Mb;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          111;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.240;
+                        vcid                112;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map 700Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-inter#$cust_name#AXIS-ANG1111#1234#700#$date_of_provisioning;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input 700Mb;
+                output 700Mb;
+            }
+            xconnect {
+                address       10.60.65.18;
+                vcid          111;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.60.65.19;
+                        vcid                112;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-111 {
+            p2p $cust_name-111 {
+                neighbor 10.230.20.237 pw-id 111 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.18 pw-id 111 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-112 {
+            p2p $cust_name-112 {
+                neighbor 10.230.20.237 pw-id 112 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.19 pw-id 112 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-111 {
+            p2p $cust_name-111 {
+                neighbor 10.230.20.239 pw-id 111 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 111 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-112 {
+            p2p $cust_name-112 {
+                neighbor 10.230.20.240 pw-id 112 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 112 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro check_6.9_2]
+    !show devices device $src_access_device config ios:policy-map 700Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-inter#$cust_name#AXIS-ANG1111#1234#700#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 700Mb;
+                output 700Mb;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          111;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map 700Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-inter#$cust_name#AXIS-ANG1111#1234#700#$date_of_provisioning;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input 700Mb;
+                output 700Mb;
+            }
+            xconnect {
+                address       10.60.65.18;
+                vcid          111;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.60.65.19;
+                        vcid                112;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 111;
+                vfi $cust_name-111 {
+                    neighbor 10.60.65.18 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                    neighbor 10.60.65.19 pw-id 112 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-111 {
+            p2p $cust_name-111 {
+                neighbor 10.230.20.239 pw-id 111 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 111 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-112 {
+            p2p $cust_name-112 {
+                neighbor 10.230.20.239 pw-id 112 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 112 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro check_6.9_3]
+    !show devices device $src_access_device config ios:policy-map 700Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-inter#$cust_name#AXIS-ANG1111#1234#700#$date_of_provisioning;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input 700Mb;
+                output 700Mb;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          111;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.240;
+                        vcid                112;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map 700Mb
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   #FTTB#e2ecen-inter#$cust_name#AXIS-ANG1111#1234#700#$date_of_provisioning;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 1 {
+            ethernet;
+            description $servicedescript_type_val;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input 700Mb;
+                output 700Mb;
+            }
+            xconnect {
+                address       10.60.65.18;
+                vcid          111;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-111 {
+            p2p $cust_name-111 {
+                neighbor 10.230.20.237 pw-id 111 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.18 pw-id 111 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group $cust_name-112 {
+            p2p $cust_name-112 {
+                neighbor 10.230.20.237 pw-id 112 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.18 pw-id 112 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class $cust_name-111 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group $cust_name-111 {
+            bridge-domain $cust_name-111 {
+                mtu 9216;
+                neighbor 10.60.65.14 pw-id 111;
+                vfi $cust_name-111 {
+                    neighbor 10.230.20.239 pw-id 111 {
+                        pw-class $cust_name-111;
+                    }
+                    neighbor 10.230.20.240 pw-id 112 {
+                        pw-class $cust_name-111;
+                    }
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro delete_mplsL2]
+    !delete mpls-l2vpn AXIS-ANG1111
+[endmacro]
+
+[macro overrides_6.1]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id qos-name QOSCLASS description $src_evc_description
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120
+    !set destn access overrides evc id $dest_evc_id description $dest_evc_description qos-name QOSCLASS-DST
+    !set destn access overrides interface description $dest_intf_description
+    !exit
+[endmacro]
+
+[macro check_6.1_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $src_evc_id {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.238;
+                vcid          120;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map QOSCLASS-DST
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   $dest_intf_description;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $dest_evc_id {
+            ethernet;
+            description $dest_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input QOSCLASS-DST;
+                output QOSCLASS-DST;
+            }
+            xconnect {
+                address       10.230.20.237;
+                vcid          120;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+[endmacro]
+
+[macro overrides_6.2]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120
+    !set destn access overrides evc id $dest_evc_id description $dest_evc_description qos-name QOSCLASS-DST
+    !set destn access overrides interface description $dest_intf_description
+    !set destn access overrides primary-pwid 121
+    !set src lagg overrides bridge-grp-name BR1 pwclass-name PCLASS1 bridge_vfi vfi-name VFI1 bridge-domain-name BRDOMAIN1
+    !set src lagg overrides primary-pwid 130
+    !set destn lagg overrides bridge-grp-name BR2 pwclass-name PCLASS2 bridge_vfi vfi-name VFI2 bridge-domain-name BRDOMAIN2
+    !exit
+[endmacro]
+
+[macro check_6.2_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 500000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $src_evc_id {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          120;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map QOSCLASS-DST
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 500000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   $dest_intf_description;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $dest_evc_id {
+            ethernet;
+            description $dest_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input QOSCLASS-DST;
+                output QOSCLASS-DST;
+            }
+            xconnect {
+                address       10.230.20.241;
+                vcid          121;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS1 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR1 {
+            bridge-domain BRDOMAIN1 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 120;
+                vfi VFI1 {
+                    neighbor 10.230.20.241 pw-id 130 {
+                        pw-class PCLASS1;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS2 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR2 {
+            bridge-domain BRDOMAIN2 {
+                mtu 9216;
+                neighbor 10.230.20.238 pw-id 121;
+                vfi VFI2 {
+                    neighbor 10.230.20.239 pw-id 130 {
+                        pw-class PCLASS2;
+                    }
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro overrides_6.3]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides primary-pwid 120 backup-pwid 121
+    !set src access overrides interface description $src_intf_description
+    !set destn access overrides evc id $dest_evc_id description $dest_evc_description qos-name QOSCLASS-DST
+    !set destn access overrides interface description $dest_intf_description
+    !set destn access overrides primary-pwid 130 backup-pwid 131
+    !set src lagg overrides bridge-grp-name BR1 pwclass-name PCLASS1 bridge_vfi vfi-name VFI1 bridge-domain-name BRDOMAIN1
+    !set src lagg overrides primary-pwid 140 backup-pwid 141
+    !set destn lagg overrides bridge-grp-name BR2 pwclass-name PCLASS2 bridge_vfi vfi-name VFI2 bridge-domain-name BRDOMAIN2 
+    !exit
+[endmacro]
+
+[macro check_6.3_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 500000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 12 {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          120;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.240;
+                        vcid                121;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map QOSCLASS-DST
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 500000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   $dest_intf_description;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 13 {
+            ethernet;
+            description $dest_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input QOSCLASS-DST;
+                output QOSCLASS-DST;
+            }
+            xconnect {
+                address       10.230.20.241;
+                vcid          130;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.242;
+                        vcid                131;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS1 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR1 {
+            bridge-domain BRDOMAIN1 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 120;
+                vfi VFI1 {
+                    neighbor 10.230.20.241 pw-id 140 {
+                        pw-class PCLASS1;
+                    }
+                    neighbor 10.230.20.242 pw-id 141 {
+                        pw-class PCLASS1;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS2 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR2 {
+            bridge-domain BRDOMAIN2 {
+                mtu 9216;
+                neighbor 10.230.20.238 pw-id 130;
+                vfi VFI2 {
+                    neighbor 10.230.20.239 pw-id 140 {
+                        pw-class PCLASS2;
+                    }
+                    neighbor 10.230.20.240 pw-id 141 {
+                        pw-class PCLASS2;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS1 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR1 {
+            bridge-domain BRDOMAIN1 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 121;
+                vfi VFI1 {
+                    neighbor 10.230.20.241 pw-id 141 {
+                        pw-class PCLASS1;
+                    }
+                    neighbor 10.230.20.242 pw-id 140 {
+                        pw-class PCLASS1;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS2 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR2 {
+            bridge-domain BRDOMAIN2 {
+                mtu 9216;
+                neighbor 10.230.20.238 pw-id 131;
+                vfi VFI2 {
+                    neighbor 10.230.20.239 pw-id 141 {
+                        pw-class PCLASS2;
+                    }
+                    neighbor 10.230.20.240 pw-id 140 {
+                        pw-class PCLASS2;
+                    }
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro overrides_6.4]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120 backup-pwid 121
+    !set src lagg overrides bridge-grp-name BR1 pwclass-name PCLASS1 bridge_vfi vfi-name VFI1 bridge-domain-name BRDOMAIN1
+    !set src lagg overrides primary-pwid 130 backup-pwid 131  
+    !exit
+[endmacro]
+
+[macro check_6.4_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 600000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 12 {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          120;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.240;
+                        vcid                121;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS1 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR1 {
+            bridge-domain BRDOMAIN1 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 120;
+                vfi VFI1 {
+                    neighbor 10.230.20.243 pw-id 130 {
+                        pw-class PCLASS1;
+                    }
+                    neighbor 10.230.20.244 pw-id 131 {
+                        pw-class PCLASS1;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS1 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR1 {
+            bridge-domain BRDOMAIN1 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 121;
+                vfi VFI1 {
+                    neighbor 10.230.20.243 pw-id 131 {
+                        pw-class PCLASS1;
+                    }
+                    neighbor 10.230.20.244 pw-id 130 {
+                        pw-class PCLASS1;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device1_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device1_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:l2vpn xconnect group $cust_name-130
+    """??
+    p2p $cust_name-130 {
+        interface $npe_interface_name$npe_interface_id.$npe_device1_subinterface;
+        neighbor 10.230.20.239 pw-id 130 {
+            ip-version ipv4;
+            backup {
+                neighbor 10.230.20.240 pw-id 131;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device2_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device2_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:l2vpn xconnect group $cust_name-131
+    """??
+    p2p $cust_name-131 {
+        interface $npe_interface_name$npe_interface_id.$npe_device2_subinterface;
+        neighbor 10.230.20.239 pw-id 131 {
+            ip-version ipv4;
+            backup {
+                neighbor 10.230.20.240 pw-id 130;
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro overrides_6.5]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120 backup-pwid 121
+    !exit
+[endmacro]
+
+[macro check_6.5_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 12 {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.243;
+                vcid          120;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.244;
+                        vcid                121;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device1_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device1_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:l2vpn xconnect group $cust_name-120
+    """??
+    p2p $cust_name-120 {
+        interface $npe_interface_name$npe_interface_id.$npe_device1_subinterface;
+        neighbor 10.230.20.237 pw-id 120 {
+            ip-version ipv4;
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device2_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device2_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:l2vpn xconnect group $cust_name-121
+    """??
+    p2p $cust_name-121 {
+        interface $npe_interface_name$npe_interface_id.$npe_device2_subinterface;
+        neighbor 10.230.20.237 pw-id 121 {
+            ip-version ipv4;
+        }
+    }
+    """
+[endmacro]
+
+[macro overrides_6.6]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120 backup-pwid 121
+    !exit
+[endmacro]
+
+[macro check_6.6_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 12 {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                dot1q {
+                    id [ 444 ];
+                }
+            }
+            rewrite {
+                ingress {
+                    tag {
+                        pop  1;
+                        mode symmetric;
+                    }
+                }
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.243;
+                vcid          120;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.244;
+                        vcid                121;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device1_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device1_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:l2vpn xconnect group $cust_name-120
+    """??
+    p2p $cust_name-120 {
+        interface $npe_interface_name$npe_interface_id.$npe_device1_subinterface;
+        neighbor 10.230.20.237 pw-id 120 {
+            ip-version ipv4;
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device2_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#400#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device2_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:l2vpn xconnect group $cust_name-121
+    """??
+    p2p $cust_name-121 {
+        interface $npe_interface_name$npe_interface_id.$npe_device2_subinterface;
+        neighbor 10.230.20.237 pw-id 121 {
+            ip-version ipv4;
+        }
+    }
+    """
+[endmacro]
+
+[macro overrides_6.7]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120 backup-pwid 121
+    !set src lagg overrides bridge-grp-name BR1 pwclass-name PCLASS1 bridge_vfi vfi-name VFI1 bridge-domain-name BRDOMAIN1
+    !set src lagg overrides primary-pwid 140 backup-pwid 141
+    !exit
+[endmacro]
+
+[macro check_6.7_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 600000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance 12 {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          120;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS1 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR1 {
+            bridge-domain BRDOMAIN1 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 120;
+                vfi VFI1 {
+                    neighbor 10.230.20.243 pw-id 140 {
+                        pw-class PCLASS1;
+                    }
+                    neighbor 10.230.20.244 pw-id 141 {
+                        pw-class PCLASS1;
+                    }
+                }
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device1_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device1_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_1 config cisco-ios-xr:l2vpn xconnect group $cust_name-140
+    """??
+    p2p $cust_name-140 {
+        interface $npe_interface_name$npe_interface_id.$npe_device1_subinterface;
+        neighbor 10.230.20.239 pw-id 140 {
+            ip-version ipv4;
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:interface $npe_interface_name-subinterface $npe_interface_name $npe_interface_id.$npe_device2_subinterface
+    """??
+    mode        l2transport;
+    description #FTTB#lm-mpls#$cust_name#AXIS-ANG1111#1234#600#$date_of_provisioning;
+    mtu         9216;
+    encapsulation {
+        dot1q {
+            vlan-id [ $npe_device2_subinterface ];
+        }
+    }
+    rewrite {
+        ingress {
+            tag {
+                pop  1;
+                mode symmetric;
+            }
+        }
+    }
+    """
+    !show devices device $dest_npe_device_2 config cisco-ios-xr:l2vpn xconnect group $cust_name-141
+    """??
+    p2p $cust_name-141 {
+        interface $npe_interface_name$npe_interface_id.$npe_device2_subinterface;
+        neighbor 10.230.20.239 pw-id 141 {
+            ip-version ipv4;
+        }
+    }
+    """
+[endmacro]
+
+[macro overrides_6.8]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120
+    !set destn access overrides evc id $dest_evc_id description $dest_evc_description qos-name QOSCLASS-DST
+    !set destn access overrides interface description $dest_intf_description
+    !set destn access overrides primary-pwid 130
+    !set src lagg overrides bridge-grp-name BR1 pwclass-name PCLASS1 xconnect p2p-name P12 xconnect-name X12
+    !set src lagg overrides primary-pwid 140
+    !set destn lagg overrides bridge-grp-name BR12 pwclass-name PCLASS12 xconnect p2p-name P1 xconnect-name X1       
+    !exit
+[endmacro]
+
+[macro check_6.8_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $src_evc_id {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          120;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map QOSCLASS-DST
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 400000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   $dest_intf_description;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $dest_evc_id {
+            ethernet;
+            description $dest_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input QOSCLASS-DST;
+                output QOSCLASS-DST;
+            }
+            xconnect {
+                address       10.60.65.18;
+                vcid          130;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X1 {
+            p2p P1 {
+                neighbor 10.230.20.239 pw-id 140 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 130 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X12 {
+            p2p P12 {
+                neighbor 10.230.20.237 pw-id 120 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.18 pw-id 140 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro overrides_6.9-1]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120 backup-pwid 121
+    !set destn access overrides evc id $dest_evc_id description $dest_evc_description qos-name QOSCLASS-DST
+    !set destn access overrides interface description $dest_intf_description
+    !set destn access overrides primary-pwid 130 backup-pwid 131
+    !set src lagg overrides bridge-grp-name BR1 pwclass-name PCLASS1 xconnect p2p-name P12 xconnect-name X12
+    !set src lagg overrides primary-pwid 140 backup-pwid 141
+    !set destn lagg overrides bridge-grp-name BR12 pwclass-name PCLASS12 xconnect p2p-name P1 xconnect-name X1       
+    !exit
+[endmacro]
+
+[macro check_6.9-1_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $src_evc_id {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          120;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.240;
+                        vcid                121;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map QOSCLASS-DST
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   $dest_intf_description;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $dest_evc_id {
+            ethernet;
+            description $dest_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input QOSCLASS-DST;
+                output QOSCLASS-DST;
+            }
+            xconnect {
+                address       10.60.65.18;
+                vcid          130;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.60.65.19;
+                        vcid                131;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X1 {
+            p2p P1 {
+                neighbor 10.230.20.239 pw-id 140 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 130 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X1 {
+            p2p P1 {
+                neighbor 10.230.20.240 pw-id 141 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 131 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X12 {
+            p2p P12 {
+                neighbor 10.230.20.237 pw-id 120 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.18 pw-id 140 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X12 {
+            p2p P12 {
+                neighbor 10.230.20.237 pw-id 121 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.19 pw-id 141 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro overrides_6.9-2]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120 backup-pwid 121
+    !set destn access overrides evc id $dest_evc_id description $dest_evc_description qos-name QOSCLASS-DST
+    !set destn access overrides interface description $dest_intf_description
+    !set destn access overrides primary-pwid 130 backup-pwid 131
+    !set src lagg overrides bridge-grp-name BR1 pwclass-name PCLASS1 bridge_vfi_xconnect vfi-name VFI1 bridge-domain-name BRDOMAIN1
+    !set src lagg overrides primary-pwid 140 backup-pwid 141
+    !set destn lagg overrides bridge_vfi_xconnect xconnect-name X6 p2p-name P6
+    !set destn lagg overrides pwclass-name PCLASS12 bridge-grp-name BR12   
+    !exit
+[endmacro]
+
+[macro check_6.9-2_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $src_evc_id {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          120;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map QOSCLASS-DST
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   $dest_intf_description;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $dest_evc_id {
+            ethernet;
+            description $dest_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input QOSCLASS-DST;
+                output QOSCLASS-DST;
+            }
+            xconnect {
+                address       10.60.65.18;
+                vcid          130;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.60.65.19;
+                        vcid                131;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X6 {
+            p2p P6 {
+                neighbor 10.230.20.239 pw-id 140 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 130 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X6 {
+            p2p P6 {
+                neighbor 10.230.20.239 pw-id 141 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.14 pw-id 131 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS1 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR1 {
+            bridge-domain BRDOMAIN1 {
+                mtu 9216;
+                neighbor 10.230.20.237 pw-id 120;
+                vfi VFI1 {
+                    neighbor 10.60.65.18 pw-id 140 {
+                        pw-class PCLASS1;
+                    }
+                    neighbor 10.60.65.19 pw-id 141 {
+                        pw-class PCLASS1;
+                    }
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+
+[macro overrides_6.9-3]
+    !edit mpls-l2vpn AXIS-ANG1111
+    !set src access overrides evc id $src_evc_id description $src_evc_description qos-name QOSCLASS
+    !set src access overrides interface description $src_intf_description
+    !set src access overrides primary-pwid 120 backup-pwid 121
+    !set destn access overrides evc id $dest_evc_id description $dest_evc_description qos-name QOSCLASS-DST
+    !set destn access overrides interface description $dest_intf_description
+    !set destn access overrides primary-pwid 130
+    !set src lagg overrides bridge_vfi_xconnect p2p-name P6 xconnect-name X6
+    !set src lagg overrides primary-pwid 140 backup-pwid 141
+    !set destn lagg overrides bridge_vfi_xconnect vfi-name VFI1 bridge-domain-name BRDOMAIN1
+    !set destn lagg overrides bridge-grp-name BR1 pwclass-name PCLASS1    
+    !exit
+[endmacro]
+
+[macro check_6.9-3_overwride]
+    !show devices device $src_access_device config ios:policy-map QOSCLASS
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_access_device config ios:interface $interface_name $interface_id 
+    """??
+    description   $src_intf_description;
+    media-type    $src_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $src_evc_id {
+            ethernet;
+            description $src_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward;
+            }
+            service-policy {
+                input QOSCLASS;
+                output QOSCLASS;
+            }
+            xconnect {
+                address       10.230.20.239;
+                vcid          120;
+                encapsulation mpls;
+                backup {
+                    peer {
+                        peer-router-ip-addr 10.230.20.240;
+                        vcid                121;
+                    }
+                }
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $destn_access_device config ios:policy-map QOSCLASS-DST
+    """??
+    class-default {
+        class class-default {
+            police {
+                cir 700000000;
+                bc  16000000;
+                conform-action {
+                    transmit;
+                }
+                exceed-action {
+                    drop;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_access_device config ios:interface $interface_name $interface_id
+    """??
+    description   $dest_intf_description;
+    media-type    $dest_media_type;
+    negotiation {
+        auto false;
+    }
+    service {
+        instance $dest_evc_id {
+            ethernet;
+            description $dest_evc_description;
+            encapsulation {
+                default;
+            }
+            l2protocol {
+                forward {
+                    protocol $dest_protocol;
+                }
+            }
+            service-policy {
+                input QOSCLASS-DST;
+                output QOSCLASS-DST;
+            }
+            xconnect {
+                address       10.60.65.18;
+                vcid          130;
+                encapsulation mpls;
+            }
+        }
+    }
+    keepalive     false;
+    ip {
+        arp {
+            inspection {
+                limit {
+                    none;
+                }
+            }
+        }
+    }
+    load-interval 30;
+    logging {
+        event {
+            link-status true;
+        }
+    }
+    mtu           9216;
+    """
+    !show devices device $src_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X6 {
+            p2p P6 {
+                neighbor 10.230.20.237 pw-id 120 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.18 pw-id 140 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $src_Aggre_device_1 config cisco-ios-xr:l2vpn
+    """??
+    xconnect {
+        group X6 {
+            p2p P6 {
+                neighbor 10.230.20.237 pw-id 121 {
+                    ip-version ipv4;
+                }
+                neighbor 10.60.65.18 pw-id 141 {
+                    ip-version ipv4;
+                }
+            }
+        }
+    }
+    """
+    !show devices device $destn_Aggre_device config cisco-ios-xr:l2vpn
+    """??
+    load-balancing {
+        flow src-dst-ip;
+    }
+    pw-class PCLASS1 {
+        encapsulation {
+            mpls {
+                control-word;
+                load-balancing {
+                    flow-label {
+                        both;
+                    }
+                }
+            }
+        }
+    }
+    bridge {
+        group BR1 {
+            bridge-domain BRDOMAIN1 {
+                mtu 9216;
+                neighbor 10.60.65.14 pw-id 130;
+                vfi VFI1 {
+                    neighbor 10.230.20.239 pw-id 140 {
+                        pw-class PCLASS1;
+                    }
+                    neighbor 10.230.20.240 pw-id 141 {
+                        pw-class PCLASS1;
+                    }
+                }
+            }
+        }
+    }
+    """
+[endmacro]
+

@@ -1,0 +1,33 @@
+Findings
+
+1. To input the Primary-pwid value, we have to click multiple times to enable the field.
+2. Mtu default value is not showing when MTU presence container enabled.
+3. Access presence container missing.
+4. After enabling src-access presence container, Vlan-id with default value (1) should  
+   enable in Src-Evc container.
+5. VPN Name (ckt-id) should accept Either lower or upper case, Remove auto caps option 
+
+
+14.11.2017
+
+1. When we are trying to delete one device from multiple devices in last mile (NPE). The Choice-Destn-Choice automatically changing to L2Vpn Destn Choice.
+
+2. Intf-id & Subintf-id should be editable in NPE devices. - Bug No:-1017
+
+3. Committed Protocols are not showing in Destn section. - Bug No:-1018
+
+4. Whenever the changes done in l2vpn link, automatically the protocol get into all mode by deleting existing protocols.
+
+5. ACC-NPE, Single AGG-Dual NPE, >500Mbps not working.(Getting error atleat 1 /dest/access/interface/intf-id is not configured)
+
+
+15.11.2017
+
+1. In Destn Section, Either e2eIntra-CEN or e2eInter-CEN selected, The device Intf-Id validation is not done. Please Check Naveen.
+
+16.11.2017
+
+1. Device list are showing in GUI.
+
+2. Duplicate Used-by-customer Service Box showing in GUI.
+
